@@ -1,0 +1,68 @@
+---
+title: "Practical Machine Learning Coursework"
+author: "Yongyang Huo"
+date: "23 August 2015"
+output: html_document
+---
+## Executive Summary  
+  Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+  The gaol of this Project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+ 
+ 
+## Data Preprocessing 
+ We first perform data loading and cleasing, which including remove NA and columns that acted as identifiers.
+
+Training Set
+```{r}
+data_training <- read.csv("./Practical_ML/pml-training.csv", na.strings= c("NA",""," "))
+data_training_NAs <- apply(data_training, 2, function(x) {sum(is.na(x))})
+data_training_clean <- data_training[,which(data_training_NAs == 0)]
+data_training_clean <- data_training_clean[8:length(data_training_clean)]
+```
+
+
+Test Set
+```{r}
+data_test <- read.csv("./Practical_ML/pml-testing.csv", na.strings= c("NA",""," "))
+data_test_NAs <- apply(data_test, 2, function(x) {sum(is.na(x))})
+data_test_clean <- data_test[,which(data_test_NAs == 0)]
+data_test_clean <- data_test_clean[8:length(data_test_clean)]
+```
+
+
+
+## Data Modelling
+
+Slice the data into training set and test set (7:3)
+```{r}
+inTrain <- createDataPartition(y = data_training_clean$classe, p = 0.7, list = FALSE)
+training <- data_training_clean[inTrain, ]
+crossval <- data_training_clean[-inTrain, ]
+
+```  
+Summary result via correlation matrix
+```{r}
+# plot a correlation matrix
+correlMatrix <- cor(training[, -length(training)])
+corrplot(correlMatrix, order = "FPC", method = "circle", type = "lower", tl.cex = 0.8,  tl.col = rgb(0, 0, 0))
+```  
+
+According to the corelation matrix, fit the model with random forest
+```{r}
+# fit a model to predict the classe using everything else as a predictor
+model <- randomForest(classe ~ ., data = training)
+model
+```  
+The model was then used to classify the remaining 30% of data. The results were placed in a confusion matrix along with the actual classifications in order to determine the accuracy of the model.
+```{r}
+predictCrossVal <- predict(model, crossval)
+confusionMatrix(crossval$classe, predictCrossVal)
+``` 
+
+Apply the prediction
+```{r}
+# predict the classes of the test set
+predictTest <- predict(model, data_test_clean)
+``` 
+## Conclusions
+With the abundance of information given from multiple measuring instruments it's possible to accurately predict how well a person is preforming an excercise using a relatively simple model.
